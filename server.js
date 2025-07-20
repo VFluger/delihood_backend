@@ -14,8 +14,8 @@ app.use(cookieParser());
 app.use(
   session({
     secret: process.env.COOKIE_SECRET,
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       secure: false, // true in production with HTTPS
       httpOnly: true,
