@@ -4,6 +4,8 @@ const router = express.Router();
 const {
   confirmMail,
   generateConfirm,
+  passwordGenerateConfirm,
+  newPassword,
 } = require("../controllers/emailVerification");
 
 router.get("/welcome", (req, res) => {
@@ -13,5 +15,8 @@ router.get("/welcome", (req, res) => {
 
 router.get("/confirm-mail", confirmMail);
 router.get("/generate-confirm", generateConfirm);
+
+router.get("/password-generate-confirm", passwordGenerateConfirm);
+router.post("/new-password", newPassword);
 
 module.exports = router;
