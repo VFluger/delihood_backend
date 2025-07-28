@@ -24,7 +24,7 @@ exports.sendConfirmationEmail = (to, token, reason) => {
     case 2:
       //Forgotten password
       subject = "Delihood: Forgotten password link";
-      confirmUrl = `http://localhost:8080/api/new-password?token=${token}`;
+      confirmUrl = `http://localhost:8080/new-password?token=${token}`;
       html = `<h2>You requested for a new password.</h2><p>Please <a href="${confirmUrl}">confirm your email</a></p>`;
   }
   return transporter.sendMail({

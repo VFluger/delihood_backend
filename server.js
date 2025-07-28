@@ -33,6 +33,9 @@ const apiRoutes = require("./routes/api");
 app.use("/auth", authRoutes);
 app.use("/api", loginAuth, apiRoutes);
 
+const passwordRoutes = require("./routes/password");
+app.use("/", passwordRoutes);
+
 //Testing HTML
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/dev.html");
