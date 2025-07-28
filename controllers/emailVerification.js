@@ -1,6 +1,8 @@
 const sql = require("../db");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
+const { check, validationResult } = require("express-validator");
+
 const { sendConfirmationEmail } = require("../utils/mailer");
 
 exports.generateConfirm = async (req, res) => {
@@ -26,6 +28,13 @@ exports.generateConfirm = async (req, res) => {
 
 exports.passwordGenerateConfirm = async (req, res) => {
   try {
+    //Sanitization
+    await check("email").isEmail().normalizeEmail().run(req);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const token = crypto.randomBytes(32).toString("hex");
     const userEmail = req.body.email;
     // Find user in db
@@ -48,9 +57,13 @@ exports.passwordGenerateConfirm = async (req, res) => {
   }
 };
 
-//TODO: Sanitization
 exports.confirmMail = async (req, res) => {
   try {
+    await check("token").isString().isLength({ min: 10 }).trim().run(req);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      req.status(400).send({ errors: errors.array() });
+    }
     const userGivenToken = req.body.token;
     const userId = req.session.user.id;
     // Search user in db
@@ -68,7 +81,7 @@ exports.confirmMail = async (req, res) => {
     ); // 15min after creation
     if (expiredDate < new Date()) {
       // Could check if tokens deleted, but fail, do we just return error?
-      void sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
+      await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
       return res
         .status(401)
         .send({ error: "Token not valid", isInvalidToken: true });
@@ -91,6 +104,16 @@ exports.confirmMail = async (req, res) => {
 //Same as above
 exports.newPassword = async (req, res) => {
   try {
+    await check("token").isString().isLength({ min: 10 }).trim().run(req);
+    await check("password")
+      .isString()
+      .isStrongPassword({ minSymbols: 0 })
+      .run(req);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).send({ errors: errors.array() });
+    }
+
     const userGivenToken = req.query.token;
     const { password } = req.body;
     // Search user in db
@@ -103,14 +126,12 @@ exports.newPassword = async (req, res) => {
     }
     const createdAt = new Date(result[0].created_at);
     const userId = result[0].user_id;
-    console.log(userId);
     createdAt.setHours(createdAt.getHours() + 2);
     const expiredDate = new Date(
       new Date(createdAt).getTime() + 15 * 60 * 1000
     ); // 15min after creation
     if (expiredDate < new Date()) {
-      console.log("expired");
-      sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
+      await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
       return res
         .status(401)
         .send({ error: "Token not valid", isInvalidToken: true });

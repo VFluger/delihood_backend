@@ -27,7 +27,6 @@ exports.login = async (req, res) => {
     });
   }
   //User logged in
-  console.log(passwordFromDB[0]);
   req.session.user = passwordFromDB[0];
   res.send({ success: true });
 };
@@ -47,7 +46,6 @@ exports.register = async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result =
     await sql`INSERT INTO users(name, password, email, phone) VALUES(${username}, ${hashedPassword}, ${email}, ${phone})`;
-  console.log(result[0]);
   res.send({ success: true });
 };
 
