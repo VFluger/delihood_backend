@@ -1,6 +1,7 @@
-const sql = require("../db");
 const bcrypt = require("bcrypt");
 const { check, validationResult } = require("express-validator");
+
+const sql = require("../db");
 
 exports.login = async (req, res) => {
   await check("email").isEmail().normalizeEmail().run(req);
@@ -11,23 +12,26 @@ exports.login = async (req, res) => {
   }
 
   const { email, password } = req.body;
-  //Look if in db for user
-  const passwordFromDB = await sql`SELECT * FROM users WHERE email=${email}`;
-  //If incorrect password
-  if (passwordFromDB.length < 1) {
+  //Look for user in db
+  const userFromDb = await sql`SELECT * FROM users WHERE email=${email}`;
+  //If user is NOT in db, fail
+  if (userFromDb.length < 1) {
     return res.status(401).send({
       error: "Incorrect email or password",
       isIncorrectPasswordOrUser: true,
     });
   }
-  if (!(await bcrypt.compare(password, passwordFromDB[0].password))) {
+
+  // Check if password is correct
+  if (!(await bcrypt.compare(password, userFromDb[0].password))) {
     return res.status(401).send({
       error: "Incorrect email or password",
       isIncorrectPasswordOrUser: true,
     });
   }
-  //User logged in
-  req.session.user = passwordFromDB[0];
+
+  //SUCCESS: User logged in
+  req.session.user = userFromDb[0]; // set session cookie
   res.send({ success: true });
 };
 
@@ -41,9 +45,9 @@ exports.register = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  let { password, email, phone, username } = req.body;
+  let { password, email, phone, username } = req.body; // Import from request
   phone = phone.replace(/\s+/g, ""); // Remove all spaces from phone number
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, 10); // Hashing password with bcrypt
   const result =
     await sql`INSERT INTO users(name, password, email, phone) VALUES(${username}, ${hashedPassword}, ${email}, ${phone})`;
   res.send({ success: true });

@@ -1,7 +1,8 @@
-const sql = require("../db");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const { check, validationResult } = require("express-validator");
+
+const sql = require("../db");
 
 const { sendConfirmationEmail } = require("../utils/mailer");
 
@@ -36,7 +37,7 @@ exports.passwordGenerateConfirm = async (req, res) => {
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    const userEmail = req.body.email;
+    const userEmail = req.query.email;
     // Find user in db
     const result = await sql`SELECT id FROM users WHERE email=${userEmail}`;
     if (result.length === 0) {
@@ -58,64 +59,59 @@ exports.passwordGenerateConfirm = async (req, res) => {
 };
 
 exports.confirmMail = async (req, res) => {
-  try {
-    await check("token").isString().isLength({ min: 10 }).trim().run(req);
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      req.status(400).send({ errors: errors.array() });
-    }
-    const userGivenToken = req.body.token;
-    const userId = req.session.user.id;
-    // Search user in db
-    const result =
-      await sql`SELECT created_at FROM email_confirmations WHERE token=${userGivenToken} AND user_id=${userId}`;
-    if (result.length < 1) {
-      return res
-        .status(401)
-        .send({ error: "Token not valid", isInvalidToken: true });
-    }
-    const createdAt = new Date(result[0].created_at);
-    createdAt.setHours(createdAt.getHours() + 2);
-    const expiredDate = new Date(
-      new Date(createdAt).getTime() + 15 * 60 * 1000
-    ); // 15min after creation
-    if (expiredDate < new Date()) {
-      // Could check if tokens deleted, but fail, do we just return error?
-      await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
-      return res
-        .status(401)
-        .send({ error: "Token not valid", isInvalidToken: true });
-    }
-    //Delete token from db
-    const deleteTokenResult =
-      await sql`DELETE FROM email_confirmations WHERE user_id=${userId}`;
-
-    //Update user in db to be email confirmed
-    req.session.user.isEmailConfirmed = true;
-    const resultOfUser =
-      await sql`UPDATE users SET isemailconfirmed = true WHERE id=${userId}`;
-    res.send({ success: true });
-  } catch (error) {
-    res
-      .status(501)
-      .send({ error: "Cannot generate confirm right now, try later" });
+  // try {
+  await check("token").isString().isLength({ min: 10 }).trim().run(req);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.status(400).send({ errors: errors.array() });
   }
+  const userGivenToken = req.query.token;
+  const userId = req.session.user.id;
+  // Search user in db
+  const result =
+    await sql`SELECT created_at FROM email_confirmations WHERE token=${userGivenToken} AND user_id=${userId}`;
+  if (result.length < 1) {
+    return res
+      .status(401)
+      .send({ error: "Token not valid", isInvalidToken: true });
+  }
+  const createdAt = new Date(result[0].created_at);
+  createdAt.setHours(createdAt.getHours() + 2);
+  const expiredDate = new Date(new Date(createdAt).getTime() + 15 * 60 * 1000); // 15min after creation
+  if (expiredDate < new Date()) {
+    // Could check if tokens deleted, but fail, do we just return error?
+    await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
+    return res
+      .status(401)
+      .send({ error: "Token not valid", isInvalidToken: true });
+  }
+  //Delete token from db
+  const deleteTokenResult =
+    await sql`DELETE FROM email_confirmations WHERE user_id=${userId}`;
+
+  //Update user in db to isemailconfirmed true
+  req.session.user.isemailconfirmed = true;
+  const resultOfUser =
+    await sql`UPDATE users SET isemailconfirmed = true WHERE id=${userId}`;
+  res.send({ success: true });
+  // } catch (error) {
+  //   res
+  //     .status(501)
+  //     .send({ error: "Cannot generate confirm right now, try later" });
+  // }
 };
 //Same as above
 exports.newPassword = async (req, res) => {
   try {
     await check("token").isString().isLength({ min: 10 }).trim().run(req);
-    await check("password")
-      .isString()
-      .isStrongPassword({ minSymbols: 0 })
-      .run(req);
+    await check("password").isString().run(req);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).send({ errors: errors.array() });
     }
 
     const userGivenToken = req.query.token;
-    const { password } = req.body;
+    const { password } = req.query;
     // Search user in db
     const result =
       await sql`SELECT created_at, user_id FROM pass_email_confirmations WHERE token=${userGivenToken}`;

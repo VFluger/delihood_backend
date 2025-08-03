@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Your Email - DeliHood</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: #f6f6f6;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        background-color: #31b7df;
+        color: #ffffff;
+        padding: 24px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .content {
+        padding: 32px 24px;
+        color: #333333;
+        line-height: 1.6;
+        font-size: 16px;
+      }
+      .button {
+        display: inline-block;
+        margin-top: 24px;
+        background-color: #31b7df;
+        color: #ffffff !important;
+        padding: 14px 24px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        font-size: 13px;
+        color: #999999;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Welcome to DeliHood</h1>
+      </div>
+      <div class="content">
+        <p>Hey there,</p>
+        <p>
+          Thanks for signing up with DeliHood! To start ordering your favorite
+          meals, please confirm your email address by clicking the button below:
+        </p>
+        <p style="text-align: center">
+          <a href="{{confirmUrl}}" class="button">Confirm My Email</a>
+        </p>
+        <p>
+          If you didn’t create a DeliHood account, you can safely ignore this
+          email.
+        </p>
+        <p>Bon appétit!<br />— The DeliHood Team</p>
+      </div>
+      <div class="footer">&copy; 2025 DeliHood. All rights reserved.</div>
+    </div>
+  </body>
+</html>

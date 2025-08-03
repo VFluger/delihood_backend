@@ -1,13 +1,13 @@
 const Express = require("express");
 const app = Express();
-require("dotenv").config();
-const session = require("express-session");
 
-const cookieParser = require("cookie-parser");
+require("dotenv").config(); // .env setup
+const session = require("express-session"); // cookie session
+const cookieParser = require("cookie-parser"); // parsing cookies
 
 // Basic middleware
-app.use(Express.urlencoded());
-app.use(Express.json());
+app.use(Express.urlencoded()); // HTML forms parse
+app.use(Express.json()); // JSON parse
 app.use(cookieParser());
 
 //Session tracking
@@ -30,17 +30,17 @@ const { loginAuth } = require("./middleware/cookieAuth");
 //Main routes
 const authRoutes = require("./routes/auth");
 const apiRoutes = require("./routes/api");
+const confirmationsRoutes = require("./routes/confirmations");
 app.use("/auth", authRoutes);
 app.use("/api", loginAuth, apiRoutes);
-
-const passwordRoutes = require("./routes/password");
-app.use("/", passwordRoutes);
+app.use("/confirmations", confirmationsRoutes);
 
 //Testing HTML
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/dev.html");
 });
 
+// Listen setup
 const server = app.listen(process.env.PORT || "8080", () => {
   console.log(`Server listening on ${server.address().port}`);
 });

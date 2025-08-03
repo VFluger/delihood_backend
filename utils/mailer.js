@@ -1,5 +1,8 @@
 const nodemailer = require("nodemailer");
 
+const fs = require("fs");
+const path = require("path");
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -16,16 +19,23 @@ exports.sendConfirmationEmail = (to, token, reason) => {
     case 1:
       //Email confirmation for new accont
       subject = "Delihood: Confirm your email";
-      // TODO: prolly load html from file
-      confirmUrl = `http://localhost:8080/api/confirm-mail?token=${token}`;
-      html = `<h2>Welcome!</h2><p>Please <a href="${confirmUrl}">confirm your email</a></p>`;
+      confirmUrl = `http://localhost:8080/confirmations/confirm-mail?token=${token}`;
+      const confirmemailHtml = fs.readFileSync(
+        path.join(__dirname, "..", "html", "confirm_mail.html"),
+        "utf8"
+      );
+      html = confirmemailHtml.replace("{{confirmUrl}}", confirmUrl);
 
       break;
     case 2:
       //Forgotten password
       subject = "Delihood: Forgotten password link";
-      confirmUrl = `http://localhost:8080/new-password?token=${token}`;
-      html = `<h2>You requested for a new password.</h2><p>Please <a href="${confirmUrl}">confirm your email</a></p>`;
+      confirmUrl = `http://localhost:8080/auth/new-password?token=${token}`;
+      const emailHtml = fs.readFileSync(
+        path.join(__dirname, "..", "html", "confirm_mail.html"),
+        "utf8"
+      );
+      html = emailHtml.replace("{{confirmUrl}}", confirmUrl);
   }
   return transporter.sendMail({
     from: process.env.EMAIL_USER,

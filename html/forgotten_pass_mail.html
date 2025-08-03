@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Your Password - DeliHood</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: #f6f6f6;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        background-color: #31b7df;
+        color: #ffffff;
+        padding: 24px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .content {
+        padding: 32px 24px;
+        color: #333333;
+        line-height: 1.6;
+        font-size: 16px;
+      }
+      .button {
+        display: inline-block;
+        margin-top: 24px;
+        background-color: #31b7df;
+        color: #ffffff !important;
+        padding: 14px 24px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        font-size: 13px;
+        color: #999999;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Password Reset Request</h1>
+      </div>
+      <div class="content">
+        <p>Hi,</p>
+        <p>
+          We received a request to reset your password for your DeliHood
+          account.
+        </p>
+        <p>
+          If you made this request, click the button below to choose a new
+          password:
+        </p>
+        <p style="text-align: center">
+          <a href="{{confirm_url}}" class="button">Reset My Password</a>
+        </p>
+        <p>
+          If you didn’t request a password reset, you can safely ignore this
+          email. Your current password will stay the same.
+        </p>
+        <p>Stay safe,<br />— The DeliHood Team</p>
+      </div>
+      <div class="footer">&copy; 2025 DeliHood. All rights reserved.</div>
+    </div>
+  </body>
+</html>
