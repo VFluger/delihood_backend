@@ -151,7 +151,14 @@ exports.register = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
+  await check("refreshToken").isString().isLength({ min: 10 }).run(req);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).send({ error: errors.array() });
+  }
+
+  const { refreshToken } = req.body;
   // Remove from db
-  await sql`DELETE FROM refresh_tokens WHERE user_id=${req.user.id}`;
+  await sql`DELETE FROM refresh_tokens WHERE token=${refreshToken}`;
   res.send({ success: true });
 };
