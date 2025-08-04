@@ -16,7 +16,7 @@ exports.login = async (req, res) => {
   const userFromDb = await sql`SELECT * FROM users WHERE email=${email}`;
   //If user is NOT in db, fail
   if (userFromDb.length < 1) {
-    return res.status(401).send({
+    return res.status(400).send({
       error: "Incorrect email or password",
       isIncorrectPasswordOrUser: true,
     });
@@ -24,7 +24,7 @@ exports.login = async (req, res) => {
 
   // Check if password is correct
   if (!(await bcrypt.compare(password, userFromDb[0].password))) {
-    return res.status(401).send({
+    return res.status(400).send({
       error: "Incorrect email or password",
       isIncorrectPasswordOrUser: true,
     });

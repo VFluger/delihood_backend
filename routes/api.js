@@ -1,12 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const {
-  confirmMail,
-  generateConfirm,
-} = require("../controllers/emailVerification");
 
-router.get("/welcome", (req, res) => {
-  res.send(`Welcome user`);
-});
+const {
+  getMe,
+  getCooks,
+  getFoodOfCook,
+  getMyOrders,
+  getOrderDetails,
+} = require("../controllers/loadInfo");
+
+router.get("/me", getMe);
+router.get("/cooks", getCooks);
+router.get("/cook/food", getFoodOfCook);
+router.get("/me/orders", getMyOrders);
+router.get("/me/order", getOrderDetails);
+
+const {
+  startOrder,
+  getPayment,
+  newOrder,
+} = require("../controllers/postOrder");
+
+router.post("/new-order", newOrder);
+router.get("/order/payment", getPayment);
+router.get("/start-order", startOrder);
 
 module.exports = router;

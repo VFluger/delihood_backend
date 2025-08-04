@@ -36,11 +36,12 @@ exports.passwordGenerateConfirm = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
     const userEmail = req.query.email;
+    const token = crypto.randomBytes(32).toString("hex");
     // Find user in db
     const result = await sql`SELECT id FROM users WHERE email=${userEmail}`;
     if (result.length === 0) {
+      // User not found
       return res.status(404).send({ error: "User not found" });
     }
     const userId = result[0].id;
@@ -59,46 +60,50 @@ exports.passwordGenerateConfirm = async (req, res) => {
 };
 
 exports.confirmMail = async (req, res) => {
-  // try {
-  await check("token").isString().isLength({ min: 10 }).trim().run(req);
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    req.status(400).send({ errors: errors.array() });
-  }
-  const userGivenToken = req.query.token;
-  const userId = req.session.user.id;
-  // Search user in db
-  const result =
-    await sql`SELECT created_at FROM email_confirmations WHERE token=${userGivenToken} AND user_id=${userId}`;
-  if (result.length < 1) {
-    return res
-      .status(401)
-      .send({ error: "Token not valid", isInvalidToken: true });
-  }
-  const createdAt = new Date(result[0].created_at);
-  createdAt.setHours(createdAt.getHours() + 2);
-  const expiredDate = new Date(new Date(createdAt).getTime() + 15 * 60 * 1000); // 15min after creation
-  if (expiredDate < new Date()) {
-    // Could check if tokens deleted, but fail, do we just return error?
-    await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
-    return res
-      .status(401)
-      .send({ error: "Token not valid", isInvalidToken: true });
-  }
-  //Delete token from db
-  const deleteTokenResult =
+  try {
+    await check("token").isString().isLength({ min: 10 }).trim().run(req);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return req.status(400).send({ errors: errors.array() });
+    }
+
+    const userGivenToken = req.query.token;
+    const userId = req.session.user.id;
+    // Search user in db
+    const result =
+      await sql`SELECT created_at FROM email_confirmations WHERE token=${userGivenToken} AND user_id=${userId}`;
+    if (result.length < 1) {
+      // User not found
+      return res
+        .status(401)
+        .send({ error: "Token not valid", isInvalidToken: true });
+    }
+    const createdAt = new Date(result[0].created_at);
+    // Accounting for Neon db timezone
+    createdAt.setHours(createdAt.getHours() + 2);
+    const expiredDate = new Date(
+      new Date(createdAt).getTime() + 15 * 60 * 1000
+    ); // 15min after creation
+    if (expiredDate < new Date()) {
+      // Delete the token
+      await sql`DELETE FROM pass_email_confirmations WHERE token=${userGivenToken}`;
+      // Send error
+      return res
+        .status(401)
+        .send({ error: "Token not valid", isInvalidToken: true });
+    }
+    //Delete token from db
     await sql`DELETE FROM email_confirmations WHERE user_id=${userId}`;
 
-  //Update user in db to isemailconfirmed true
-  req.session.user.isemailconfirmed = true;
-  const resultOfUser =
+    //SUCCESS: Update user in db to isemailconfirmed true
+    req.session.user.isemailconfirmed = true;
     await sql`UPDATE users SET isemailconfirmed = true WHERE id=${userId}`;
-  res.send({ success: true });
-  // } catch (error) {
-  //   res
-  //     .status(501)
-  //     .send({ error: "Cannot generate confirm right now, try later" });
-  // }
+    res.send({ success: true });
+  } catch (error) {
+    res
+      .status(501)
+      .send({ error: "Cannot generate confirm right now, try later" });
+  }
 };
 //Same as above
 exports.newPassword = async (req, res) => {
@@ -107,7 +112,7 @@ exports.newPassword = async (req, res) => {
     await check("password").isString().run(req);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).send({ errors: errors.array() });
+      return res.status(400).send({ errors: errors.array() });
     }
 
     const userGivenToken = req.query.token;
