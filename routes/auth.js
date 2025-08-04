@@ -1,10 +1,11 @@
 const express = require("express");
 
 const router = express.Router();
-const { login, register } = require("../controllers/loginRegister");
+const { login, register, newTokens } = require("../controllers/loginRegister");
 
 router.post("/login", login);
 router.post("/register", register);
+router.post("/refresh-token", newTokens);
 
 const {
   passwordGenerateConfirm,

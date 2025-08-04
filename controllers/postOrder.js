@@ -73,7 +73,7 @@ module.exports.newOrder = async (req, res) => {
             delivery_location_lat, 
             user_id)
             VALUES
-            (${totalPrice}, ${tip}, ${deliveryLocation.lng}, ${deliveryLocation.lat}, ${req.session.user.id})
+            (${totalPrice}, ${tip}, ${deliveryLocation.lng}, ${deliveryLocation.lat}, ${req.user.id})
             RETURNING id`;
 
   const orderId = resultOfNewOrder[0].id;
@@ -92,10 +92,10 @@ module.exports.newOrder = async (req, res) => {
       currency: "czk",
       metadata: {
         orderId: orderId.toString(),
-        userId: req.session.user.id.toString(),
+        userId: req.user.id.toString(),
       },
-      description: `Order #${orderId} by User ${req.session.user.id}`,
-      receipt_email: req.session.user.email,
+      description: `Order #${orderId} by User ${req.user.id}`,
+      receipt_email: req.user.email,
       //statement_descriptor: `DeliHood Order#${orderId}`,
     });
     res.send({
@@ -135,10 +135,10 @@ module.exports.getPayment = async (req, res) => {
       currency: "czk",
       metadata: {
         orderId: orderId.toString(),
-        userId: req.session.user.id.toString(),
+        userId: req.user.id.toString(),
       },
-      description: `Order #${orderId} by User ${req.session.user.id}`,
-      receipt_email: req.session.user.email,
+      description: `Order #${orderId} by User ${req.user.id}`,
+      receipt_email: req.user.email,
       //statement_descriptor: `DeliHood Order#${orderId}`,
     });
     res.send({

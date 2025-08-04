@@ -2,7 +2,6 @@ const Express = require("express");
 const app = Express();
 
 require("dotenv").config(); // .env setup
-const session = require("express-session"); // cookie session
 const cookieParser = require("cookie-parser"); // parsing cookies
 
 // Basic middleware
@@ -10,22 +9,8 @@ app.use(Express.urlencoded()); // HTML forms parse
 app.use(Express.json()); // JSON parse
 app.use(cookieParser());
 
-//Session tracking
-app.use(
-  session({
-    secret: process.env.COOKIE_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // true in production with HTTPS
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60, // 1 hour
-    },
-  })
-);
-
 //Cookie Auth mount
-const { loginAuth } = require("./middleware/cookieAuth");
+const { loginAuth } = require("./middleware/jwtAuth");
 
 //Main routes
 const authRoutes = require("./routes/auth");

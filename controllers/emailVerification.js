@@ -9,8 +9,8 @@ const { sendConfirmationEmail } = require("../utils/mailer");
 exports.generateConfirm = async (req, res) => {
   try {
     const token = crypto.randomBytes(32).toString("hex");
-    const userId = req.session.user.id;
-    const userEmail = req.session.user.email;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
 
     // Delete all tokens that this user has
     await sql`DELETE FROM email_confirmations WHERE user_id=${userId}`;
@@ -68,7 +68,7 @@ exports.confirmMail = async (req, res) => {
     }
 
     const userGivenToken = req.query.token;
-    const userId = req.session.user.id;
+    const userId = req.user.id;
     // Search user in db
     const result =
       await sql`SELECT created_at FROM email_confirmations WHERE token=${userGivenToken} AND user_id=${userId}`;
@@ -96,7 +96,7 @@ exports.confirmMail = async (req, res) => {
     await sql`DELETE FROM email_confirmations WHERE user_id=${userId}`;
 
     //SUCCESS: Update user in db to isemailconfirmed true
-    req.session.user.isemailconfirmed = true;
+    req.user.isemailconfirmed = true;
     await sql`UPDATE users SET isemailconfirmed = true WHERE id=${userId}`;
     res.send({ success: true });
   } catch (error) {
