@@ -34,10 +34,14 @@ module.exports.newOrder = async (req, res) => {
   // Cast into set to remove duplicates
   const itemIds = [...new Set(items.map((item) => item.food_id))];
   // Check if all foods exist
-  const resultOfFood =
-    await sql`SELECT * FROM foods WHERE id = ANY(${itemIds})`;
+  const resultOfFood = await sql`SELECT *
+     FROM foods
+      WHERE id = ANY(${itemIds})
+      AND cook_id IN (SELECT id FROM cooks WHERE online = true)`;
   if (resultOfFood.length !== items.length) {
-    return res.status(404).send({ error: "Food doesn't exist" });
+    return res
+      .status(404)
+      .send({ error: "Food doesn't exist or cook is offline" });
   }
 
   const cookIds = new Set(resultOfFood.map((food) => food.cook_id));
@@ -45,6 +49,24 @@ module.exports.newOrder = async (req, res) => {
     return res
       .status(400)
       .send({ error: "All foods must be from the same cook" });
+  }
+
+  // Check if there is a driver within 25km who is online
+  const driverResult = await sql`
+    SELECT id FROM drivers
+    WHERE online = true
+    AND ST_DWithin(
+      location::geography,
+      ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography,
+      25000
+    )
+    LIMIT 1
+  `;
+
+  if (driverResult.length < 1) {
+    return res
+      .status(400)
+      .send({ error: "No driver available in your location" });
   }
 
   // Match foods to items and calculate prices
@@ -65,15 +87,15 @@ module.exports.newOrder = async (req, res) => {
   }
   // Calculate total
   const totalPrice = arrOfPrices.reduce((a, b) => a + b, 0) + PRICE_OF_DELIVERY;
-  // Push into db
+
+  // Push into db with PostGIS geography point for delivery_location
   const resultOfNewOrder = await sql`INSERT INTO orders
             (price, 
             tip, 
-            delivery_location_lng, 
-            delivery_location_lat, 
+            delivery_location, 
             user_id)
             VALUES
-            (${totalPrice}, ${tip}, ${deliveryLocation.lng}, ${deliveryLocation.lat}, ${req.session.user.id})
+            (${totalPrice}, ${tip}, ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography, ${req.session.user.id})
             RETURNING id`;
 
   const orderId = resultOfNewOrder[0].id;

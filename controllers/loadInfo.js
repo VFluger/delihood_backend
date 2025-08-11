@@ -98,14 +98,31 @@ module.exports.getCooks = async (req, res) => {
 
     const radiusMeters = 25000; // 25km
 
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+
+    // Check if there is at least one driver online within 25km radius
+    const driverResult = await sql`
+      SELECT id FROM drivers
+      WHERE is_online = TRUE
+        AND ST_DWithin(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+          ${radiusMeters}
+        )
+      LIMIT 1;
+    `;
+
+    if (driverResult.length < 1) {
+      return res.status(400).send({ error: "No driver available within 25km" });
+    }
+
     // Get cooks that are online in 25km radius
     // Ordered by distance at least for now
     const result = await sql`
       SELECT
         id,
         name,
-        location_lat,
-        location_lng,
         ST_Distance(
           location,
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
