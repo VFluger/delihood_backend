@@ -88,8 +88,39 @@ module.exports.getOrderDetails = async (req, res) => {
 
 module.exports.getCooks = async (req, res) => {
   try {
-    const result =
-      await sql`SELECT id, name, location_lat, location_lng FROM cooks WHERE is_online=TRUE`;
+    //Location of user
+    await check("lat").isFloat().run(req);
+    await check("lat").isFloat().run(req);
+
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.send({ errors: errors.array() });
+    }
+
+    const radiusMeters = 25000; // 25km
+
+    // Get cooks that are online in 25km radius
+    // Ordered by distance at least for now
+    const result = await sql`
+      SELECT
+        id,
+        name,
+        location_lat,
+        location_lng,
+        ST_Distance(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+        ) AS distance_meters
+      FROM cooks
+      WHERE is_online = TRUE
+        AND ST_DWithin(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+          ${radiusMeters}
+        )
+      ORDER BY distance_meters ASC;
+    `;
 
     res.send({ success: true, data: result });
   } catch (err) {
