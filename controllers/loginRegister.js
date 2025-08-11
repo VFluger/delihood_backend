@@ -54,8 +54,10 @@ exports.login = async (req, res) => {
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: "30d" }
   );
+  // Delete all old refresh tokens
+  await sql`DELETE FROM refresh_tokens WHERE user_id=${userFromDb[0].id}`;
   // Push to db
-  await sql`INSERT INTO refresh_tokens(token, expires_at) VALUES(${refreshToken}, ${refreshExpiresAt})`;
+  await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${refreshToken}, ${refreshExpiresAt}, ${userFromDb[0].id})`;
   res.send({ success: true, jwt: jwtForUser, refreshToken });
 };
 
@@ -86,18 +88,16 @@ exports.newTokens = async (req, res) => {
   const result =
     await sql`SELECT expires_at FROM refresh_tokens WHERE token=${refreshToken}`;
   if (result.length < 1) {
-    console.log("not in db");
     return res.status(400).send({ error: "Refresh token cannot be verified" });
   }
   // Check if expired
   const tokenFromDb = result[0];
   if (tokenFromDb.expires_at < Date.now()) {
-    console.log("expired");
     return res.status(400).send({ error: "Refresh token cannot be verified" });
   }
   // REFRESH TOKEN VALID
   // Delete old refresh token from DB
-  await sql`DELETE FROM refresh_tokens WHERE token=${refreshToken}`;
+  await sql`DELETE FROM refresh_tokens WHERE user_id=${decoded.userId}`;
 
   // Create new short-lived JWT
   const jwtForUser = jwt.sign(
@@ -151,14 +151,7 @@ exports.register = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  await check("refreshToken").isString().isLength({ min: 10 }).run(req);
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).send({ error: errors.array() });
-  }
-
-  const { refreshToken } = req.body;
   // Remove from db
-  await sql`DELETE FROM refresh_tokens WHERE token=${refreshToken}`;
+  await sql`DELETE FROM refresh_tokens WHERE user_id=${req.user.id}`;
   res.send({ success: true });
 };

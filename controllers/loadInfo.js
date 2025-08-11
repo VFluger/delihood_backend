@@ -4,6 +4,7 @@ const sql = require("../db");
 
 module.exports.getMe = async (req, res) => {
   try {
+    // Reading from variable set by middleware from db
     const { name, email, phone, created_at } = req.user;
 
     res.send({
@@ -22,7 +23,6 @@ module.exports.getMe = async (req, res) => {
 };
 
 module.exports.getMyOrders = async (req, res) => {
-  // Check payment status?
   try {
     const userId = req.user.id;
     const result = await sql`SELECT * FROM orders WHERE user_id=${userId}`;

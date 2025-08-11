@@ -2,12 +2,13 @@ const jwt = require("jsonwebtoken");
 const sql = require("../db");
 
 exports.loginAuth = async (req, res, next) => {
+  // Token in authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).send("Not authenticated");
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(" ")[1]; // iOS stuff
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -19,7 +20,7 @@ exports.loginAuth = async (req, res, next) => {
         .json({ message: "Email not verified.", email_not_verified: true });
     }
 
-    req.user = result[0];
+    req.user = result[0]; // Setting user info to global variable
     next();
   } catch (err) {
     console.error(err);
