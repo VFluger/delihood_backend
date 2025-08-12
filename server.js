@@ -9,6 +9,16 @@ app.use(Express.urlencoded()); // HTML forms parse
 app.use(Express.json()); // JSON parse
 app.use(cookieParser());
 
+app.use((req, res, next) => {
+  console.log(`${req.method} on ${req.url} from ${req.ip}`);
+  console.log(`AUTHORIZATION: ${req.headers.authorization}`);
+  if (req.method != "GET") {
+    console.log("BODY: ");
+    console.log(`${JSON.stringify(req.body)}`);
+  }
+  next();
+});
+
 //Cookie Auth mount
 const { loginAuth } = require("./middleware/jwtAuth");
 

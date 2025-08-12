@@ -58,13 +58,14 @@ exports.login = async (req, res) => {
   await sql`DELETE FROM refresh_tokens WHERE user_id=${userFromDb[0].id}`;
   // Push to db
   await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${refreshToken}, ${refreshExpiresAt}, ${userFromDb[0].id})`;
-  res.send({ success: true, jwt: jwtForUser, refreshToken });
+  res.send({ success: true, accessToken: jwtForUser, refreshToken });
 };
 
 exports.newTokens = async (req, res) => {
   await check("refreshToken").isString().isLength({ min: 10 }).run(req);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log(errors.array());
     return res.status(400).send({ error: errors.array() });
   }
   // Use given refreshToken to get new shortlived
@@ -88,11 +89,13 @@ exports.newTokens = async (req, res) => {
   const result =
     await sql`SELECT expires_at FROM refresh_tokens WHERE token=${refreshToken}`;
   if (result.length < 1) {
+    console.log("refreshToken not in db");
     return res.status(400).send({ error: "Refresh token cannot be verified" });
   }
   // Check if expired
   const tokenFromDb = result[0];
   if (tokenFromDb.expires_at < Date.now()) {
+    console.log("refreshToken expired");
     return res.status(400).send({ error: "Refresh token cannot be verified" });
   }
   // REFRESH TOKEN VALID
@@ -122,8 +125,9 @@ exports.newTokens = async (req, res) => {
   );
 
   // Save new refresh token
-  await sql`INSERT INTO refresh_tokens(token, expires_at) VALUES(${newRefreshToken}, ${newRefreshExpiresAt})`;
+  await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${newRefreshToken}, ${newRefreshExpiresAt}, ${decoded.userId})`;
 
+  console.log("SUCCESS");
   res.send({ jwt: jwtForUser, refreshToken: newRefreshToken });
 };
 
@@ -135,6 +139,7 @@ exports.register = async (req, res) => {
     await check("password").isLength({ min: 8 }).escape().run(req);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log(errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -143,6 +148,7 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10); // Hashing password with bcrypt
 
     await sql`INSERT INTO users(name, password, email, phone) VALUES(${username}, ${hashedPassword}, ${email}, ${phone})`;
+    console.log("SUCCESS");
     res.send({ success: true });
   } catch (err) {
     console.error(err);

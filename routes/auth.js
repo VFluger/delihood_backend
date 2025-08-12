@@ -5,7 +5,7 @@ const { login, register, newTokens } = require("../controllers/loginRegister");
 
 router.post("/login", login);
 router.post("/register", register);
-router.post("/refresh-token", newTokens);
+router.post("/refresh", newTokens);
 
 const {
   passwordGenerateConfirm,
