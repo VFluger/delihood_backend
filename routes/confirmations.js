@@ -6,7 +6,7 @@ const {
 } = require("../controllers/emailVerification");
 const { loginAuthWithoutEmailVer } = require("../middleware/jwtAuth");
 
-router.get("/confirm-mail", loginAuthWithoutEmailVer, confirmMail);
+router.post("/confirm-mail", loginAuthWithoutEmailVer, confirmMail);
 router.get("/generate-confirm", loginAuthWithoutEmailVer, generateConfirm);
 
 module.exports = router;

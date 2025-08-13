@@ -11,11 +11,6 @@ app.use(cookieParser());
 
 app.use((req, res, next) => {
   console.log(`${req.method} on ${req.url} from ${req.ip}`);
-  console.log(`AUTHORIZATION: ${req.headers.authorization}`);
-  if (req.method != "GET") {
-    console.log("BODY: ");
-    console.log(`${JSON.stringify(req.body)}`);
-  }
   next();
 });
 

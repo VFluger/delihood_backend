@@ -6,7 +6,6 @@ module.exports.getMe = async (req, res) => {
   try {
     // Reading from variable set by middleware from db
     const { name, email, phone, created_at } = req.user;
-    console.log("SEND SUCCESSFULL");
     res.send({
       success: true,
       data: {

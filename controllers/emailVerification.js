@@ -21,6 +21,7 @@ exports.generateConfirm = async (req, res) => {
     sendConfirmationEmail(userEmail, token, 1);
     res.send({ success: true });
   } catch (error) {
+    console.log(error);
     res
       .status(501)
       .send({ error: "Cannot generate confirm right now, try later" });
@@ -36,8 +37,9 @@ exports.passwordGenerateConfirm = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const userEmail = req.query.email;
+    const userEmail = req.body.email;
     const token = crypto.randomBytes(32).toString("hex");
+
     // Find user in db
     const result = await sql`SELECT id FROM users WHERE email=${userEmail}`;
     if (result.length === 0) {
@@ -67,7 +69,7 @@ exports.confirmMail = async (req, res) => {
       return req.status(400).send({ errors: errors.array() });
     }
 
-    const userGivenToken = req.query.token;
+    const userGivenToken = req.body.token;
     const userId = req.user.id;
     // Search user in db
     const result =
@@ -115,8 +117,8 @@ exports.newPassword = async (req, res) => {
       return res.status(400).send({ errors: errors.array() });
     }
 
-    const userGivenToken = req.query.token;
-    const { password } = req.query;
+    const userGivenToken = req.body.token;
+    const { password } = req.body;
     // Search user in db
     const result =
       await sql`SELECT created_at, user_id FROM pass_email_confirmations WHERE token=${userGivenToken}`;

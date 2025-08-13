@@ -19,7 +19,7 @@ exports.sendConfirmationEmail = (to, token, reason) => {
     //Email confirmation for new accont
     case 1:
       subject = "Delihood: Confirm your email";
-      confirmUrl = `http://localhost:8080/confirmations/confirm-mail?token=${token}`;
+      confirmUrl = `delihood://localhost:8080/confirmations/confirm-mail?token=${token}`;
       // Import html from file
       const confirmemailHtml = fs.readFileSync(
         path.join(__dirname, "..", "html", "confirm_mail.html"),
@@ -32,7 +32,7 @@ exports.sendConfirmationEmail = (to, token, reason) => {
     //Forgotten password
     case 2:
       subject = "Delihood: Forgotten password link";
-      confirmUrl = `http://localhost:8080/auth/new-password?token=${token}`;
+      confirmUrl = `delihood://localhost:8080/auth/new-password?token=${token}`;
       // Import from file
       const emailHtml = fs.readFileSync(
         path.join(__dirname, "..", "html", "confirm_mail.html"),
