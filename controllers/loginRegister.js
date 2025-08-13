@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 
 const sql = require("../db");
 
-const loginJWT = require("../utils/loginJWT");
+const { loginJWT } = require("../utils/loginJWT");
 
 exports.login = async (req, res) => {
   await check("email").isEmail().normalizeEmail().run(req);

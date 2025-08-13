@@ -1,6 +1,6 @@
 const sql = require("../db");
 
-exports = async (res, userId) => {
+module.exports.loginJWT = async (res, userId) => {
   // Short JWT lived for user
   const jwtForUser = jwt.sign(
     {

@@ -1,7 +1,7 @@
 const { OAuth2Client } = require("google-auth-library");
 const { check, validationResult } = require("express-validator");
 const sql = require("../db");
-const loginJWT = require("../utils/loginJWT");
+const { loginJWT } = require("../utils/loginJWT");
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
