@@ -107,20 +107,19 @@ exports.register = async (req, res) => {
     await check("username").trim().notEmpty().escape().run(req);
     await check("email").isEmail().normalizeEmail().run(req);
     await check("phone").isMobilePhone().run(req);
-    await check("password").isLength({ min: 8 }).escape().run(req);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log(errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
-    let { password, email, phone, username } = req.body; // Import from request
+    let { email, phone, username } = req.body; // Import from request
+
     phone = phone.replace(/\s+/g, ""); // Remove all spaces from phone number
-    const hashedPassword = await bcrypt.hash(password, 10); // Hashing password with bcrypt
 
     //Check if username or phone already in db
     const existingUser = await sql`
-      SELECT * FROM users WHERE email=${email} OR phone=${phone} OR name=${username}
+    SELECT * FROM users WHERE email=${email} OR phone=${phone} OR name=${username}
     `;
     if (existingUser.length > 0) {
       return res.status(409).json({
@@ -128,7 +127,11 @@ exports.register = async (req, res) => {
         isDuplicate: true,
       });
     }
-
+    if (!req.body.password) {
+      await sql`INSERT INTO users(name, email, phone) VALUES(${username}, ${email}, ${phone})`;
+      res.send({ success: true });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10); // Hashing password with bcrypt
     await sql`INSERT INTO users(name, password, email, phone) VALUES(${username}, ${hashedPassword}, ${email}, ${phone})`;
     res.send({ success: true });
   } catch (err) {
