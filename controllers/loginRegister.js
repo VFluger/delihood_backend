@@ -5,6 +5,8 @@ const jwt = require("jsonwebtoken");
 
 const sql = require("../db");
 
+const loginJWT = require("../utils/loginJWT");
+
 exports.login = async (req, res) => {
   await check("email").isEmail().normalizeEmail().run(req);
   await check("password").isLength({ min: 8 }).escape().run(req);
@@ -34,31 +36,7 @@ exports.login = async (req, res) => {
   }
 
   //SUCCESS: User logged in
-
-  // Short lived for user
-  const jwtForUser = jwt.sign(
-    {
-      exp: Math.floor(Date.now() / 1000) + 60 * 60, // Expires in 1 hour
-      userId: userFromDb[0].id,
-    },
-    process.env.JWT_SECRET
-  );
-
-  // RefreshToken used for getting a new shortlived
-  const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const refreshToken = jwt.sign(
-    {
-      userId: userFromDb[0].id,
-      tokenType: "refresh",
-    },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "30d" }
-  );
-  // Delete all old refresh tokens
-  await sql`DELETE FROM refresh_tokens WHERE user_id=${userFromDb[0].id}`;
-  // Push to db
-  await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${refreshToken}, ${refreshExpiresAt}, ${userFromDb[0].id})`;
-  res.send({ success: true, accessToken: jwtForUser, refreshToken });
+  loginJWT(res, userFromDb[0].id);
 };
 
 exports.newTokens = async (req, res) => {
