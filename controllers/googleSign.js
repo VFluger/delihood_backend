@@ -15,6 +15,8 @@ module.exports.googleSign = async (req, res) => {
     return res.status(400).send({ error: errors.array() });
   }
 
+  const token = req.body.token;
+
   const ticket = await oAuth2Client.verifyIdToken({
     idToken: token,
     audience: CLIENT_ID,
