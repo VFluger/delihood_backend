@@ -1,4 +1,5 @@
 const sql = require("../db");
+const jwt = require("jsonwebtoken");
 
 module.exports.loginJWT = async (res, userId) => {
   // Short JWT lived for user
