@@ -1,3 +1,4 @@
+const { normalizeEmail } = require("validator");
 const { OAuth2Client } = require("google-auth-library");
 const { check, validationResult } = require("express-validator");
 const sql = require("../db");
@@ -25,7 +26,7 @@ module.exports.googleSign = async (req, res) => {
   const payload = ticket.getPayload();
 
   const username = payload.name;
-  const email = payload.email;
+  const email = normalizeEmail(payload.email);
 
   // Check if user in db, decide if register or log in
   const result = await sql`SELECT id FROM users WHERE email=${email}`;
