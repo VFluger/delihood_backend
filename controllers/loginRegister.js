@@ -129,8 +129,9 @@ exports.register = async (req, res) => {
     }
     if (!req.body.password) {
       await sql`INSERT INTO users(name, email, phone) VALUES(${username}, ${email}, ${phone})`;
-      res.send({ success: true });
+      return res.send({ success: true });
     }
+    const password = req.body.password;
     const hashedPassword = await bcrypt.hash(password, 10); // Hashing password with bcrypt
     await sql`INSERT INTO users(name, password, email, phone) VALUES(${username}, ${hashedPassword}, ${email}, ${phone})`;
     res.send({ success: true });
