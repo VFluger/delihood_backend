@@ -8,7 +8,7 @@ const PRICE_OF_DELIVERY = 30; // 30 Kc
 
 // Create new order and send payment gate
 /* Expected JSON:
-    "items": [ {food_id: Int, quantity: Int, note: String} ]
+    "items": [ {foodId: Int, quantity: Int, note: String} ]
     deliveryLocation: {
     "lat": Double
     "lng": Double
@@ -17,7 +17,7 @@ const PRICE_OF_DELIVERY = 30; // 30 Kc
 */
 module.exports.newOrder = async (req, res) => {
   await check("items").isArray({ min: 1 }).run(req);
-  await check("items.*.food_id").isInt().run(req);
+  await check("items.*.foodId").isInt().run(req);
   await check("items.*.quantity").isInt({ min: 1 }).run(req);
   await check("items.*.note").isString().trim().escape().run(req);
   await check("deliveryLocation.lat").isNumeric().run(req);
@@ -32,7 +32,7 @@ module.exports.newOrder = async (req, res) => {
   const { items, deliveryLocation, tip } = req.body;
 
   // Cast into set to remove duplicates
-  const itemIds = [...new Set(items.map((item) => item.food_id))];
+  const itemIds = [...new Set(items.map((item) => item.foodId))];
   // Check if all foods exist
   const resultOfFood = await sql`SELECT *
      FROM foods
@@ -77,11 +77,11 @@ module.exports.newOrder = async (req, res) => {
 
   const arrOfPrices = [];
   for (const item of items) {
-    const food = foodMap.get(item.food_id);
+    const food = foodMap.get(item.foodId);
     if (!food) {
       return res
         .status(404)
-        .send({ error: `Food with ID ${item.food_id} not found` });
+        .send({ error: `Food with ID ${item.foodId} not found` });
     }
     arrOfPrices.push(food.price * item.quantity);
   }
@@ -95,16 +95,16 @@ module.exports.newOrder = async (req, res) => {
             delivery_location, 
             user_id)
             VALUES
-            (${totalPrice}, ${tip}, ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography, ${req.session.user.id})
+            (${totalPrice}, ${tip}, ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography, ${req.user.id})
             RETURNING id`;
 
   const orderId = resultOfNewOrder[0].id;
 
   for (const item of items) {
-    const itemPrice = foodMap.get(item.food_id).price;
+    const itemPrice = foodMap.get(item.foodId).price;
     await sql`
-    INSERT INTO order_items (order_id, food_id, quantity, notes, price_at_order)
-    VALUES (${orderId}, ${item.food_id}, ${item.quantity}, ${item.note}, ${itemPrice})
+    INSERT INTO order_items (order_id, foodId, quantity, notes, price_at_order)
+    VALUES (${orderId}, ${item.foodId}, ${item.quantity}, ${item.note}, ${itemPrice})
   `;
   }
   // Send payment gate
@@ -114,10 +114,10 @@ module.exports.newOrder = async (req, res) => {
       currency: "czk",
       metadata: {
         orderId: orderId.toString(),
-        userId: req.session.user.id.toString(),
+        userId: req.user.id.toString(),
       },
-      description: `Order #${orderId} by User ${req.session.user.id}`,
-      receipt_email: req.session.user.email,
+      description: `Order #${orderId} by User ${req.user.id}`,
+      receipt_email: req.user.email,
       //statement_descriptor: `DeliHood Order#${orderId}`,
     });
     res.send({
@@ -157,10 +157,10 @@ module.exports.getPayment = async (req, res) => {
       currency: "czk",
       metadata: {
         orderId: orderId.toString(),
-        userId: req.session.user.id.toString(),
+        userId: req.user.id.toString(),
       },
-      description: `Order #${orderId} by User ${req.session.user.id}`,
-      receipt_email: req.session.user.email,
+      description: `Order #${orderId} by User ${req.user.id}`,
+      receipt_email: req.user.email,
       //statement_descriptor: `DeliHood Order#${orderId}`,
     });
     res.send({
@@ -196,6 +196,6 @@ module.exports.startOrder = async (req, res) => {
       .send({ error: "Payment not successfull", paymentStatus: intent.status });
   }
   // Update in db
-  await sql`UPDATE orders SET status='accepted' WHERE id=${orderId}`;
+  await sql`UPDATE orders SET status='paid' WHERE id=${orderId}`;
   // Send info to cook
 };

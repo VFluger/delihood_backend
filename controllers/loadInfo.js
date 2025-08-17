@@ -4,15 +4,17 @@ const sql = require("../db");
 
 module.exports.getMe = async (req, res) => {
   try {
-    const userId = req.session.user.id;
-
-    const result =
-      await sql`SELECT name, email, phone, created_at, isemailconfirmed FROM users WHERE id=${userId}`;
-    if (result.length < 1) {
-      return res.status(400).send({ error: "User cannot be found" });
-    }
-
-    res.send({ success: true, data: result[0] });
+    // Reading from variable set by middleware from db
+    const { name, email, phone, created_at } = req.user;
+    res.send({
+      success: true,
+      data: {
+        username: name,
+        email,
+        phone,
+        created_at,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(501).send({ error: "Cannot get your info at the moment" });
@@ -20,9 +22,8 @@ module.exports.getMe = async (req, res) => {
 };
 
 module.exports.getMyOrders = async (req, res) => {
-  // Check payment status?
   try {
-    const userId = req.session.user.id;
+    const userId = req.user.id;
     const result = await sql`SELECT * FROM orders WHERE user_id=${userId}`;
     // Check payment status for 'pending' orders
     for (const order of result) {
@@ -54,7 +55,7 @@ module.exports.getOrderDetails = async (req, res) => {
     return res.status(400).send({ error: errors.array() });
   }
   try {
-    const userId = req.session.user.id;
+    const userId = req.user.id;
     const orderId = Number(req.query.id);
 
     // Check if order belongs to user

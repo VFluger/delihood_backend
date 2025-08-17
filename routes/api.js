@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+//Get info logic
 const {
   getMe,
   getCooks,
@@ -15,6 +16,12 @@ router.get("/cook/food", getFoodOfCook);
 router.get("/me/orders", getMyOrders);
 router.get("/me/order", getOrderDetails);
 
+//Change Acc info logic
+const { changeAcc } = require("../controllers/changeAcc");
+
+router.post("/change/:changeParam", changeAcc);
+
+//Order logic
 const {
   startOrder,
   getPayment,
