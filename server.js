@@ -39,6 +39,9 @@ app.get("/testing-data", (req, res) => {
       {
         id: 1,
         name: "Chef Antonín Novák",
+        description:
+          "Specializes in Asian cuisine, bringing authentic flavors from Vietnam and Thailand to your table.",
+        imageUrl: "https://picsum.photos/id/1011/600/400",
         location_lat: 50.088,
         location_lng: 14.42,
         foods: [
@@ -72,6 +75,9 @@ app.get("/testing-data", (req, res) => {
       {
         id: 2,
         name: "Giovanni Rossi",
+        description:
+          "Italian chef passionate about traditional recipes and fresh ingredients from Milan.",
+        imageUrl: "https://picsum.photos/id/1011/600/400",
         location_lat: 45.465,
         location_lng: 9.19,
         foods: [
@@ -98,6 +104,9 @@ app.get("/testing-data", (req, res) => {
       {
         id: 3,
         name: "Priya Sharma",
+        description:
+          "Expert in Indian cuisine, offering rich and aromatic dishes inspired by Delhi's street food.",
+        imageUrl: "https://picsum.photos/id/1011/600/400",
         location_lat: 28.6139,
         location_lng: 77.209,
         foods: [
@@ -130,6 +139,9 @@ app.get("/testing-data", (req, res) => {
       {
         id: 4,
         name: "Jan Koudelka",
+        description:
+          "Traditional Czech cook, famous for hearty meals and classic flavors from Brno.",
+        imageUrl: "https://picsum.photos/id/1011/600/400",
         location_lat: 49.195,
         location_lng: 16.608,
         foods: [
@@ -147,6 +159,9 @@ app.get("/testing-data", (req, res) => {
       {
         id: 5,
         name: "FastBite Express",
+        description:
+          "Quick and affordable fast food, perfect for busy city life in New York.",
+        imageUrl: "https://picsum.photos/id/1011/600/400",
         location_lat: 40.7128,
         location_lng: -74.006,
         foods: [
@@ -154,7 +169,7 @@ app.get("/testing-data", (req, res) => {
             id: 10,
             name: "Cheeseburger",
             description: "Juicy beef patty with cheddar cheese and pickles.",
-            category: "quick_cheap",
+            category: "cheap",
             price: 120,
             imageUrl: "https://picsum.photos/id/1080/600/400",
           },
@@ -162,7 +177,7 @@ app.get("/testing-data", (req, res) => {
             id: 11,
             name: "French Fries",
             description: "Crispy golden fries served with ketchup.",
-            category: "quick_cheap",
+            category: "cheap",
             price: 60,
             imageUrl: "https://picsum.photos/id/1084/600/400",
           },
@@ -178,7 +193,7 @@ app.get("/testing-data", (req, res) => {
             id: 13,
             name: "Chicken Wrap",
             description: "Grilled chicken wrap with fresh vegetables.",
-            category: "quick_cheap",
+            category: "cheap",
             price: 110,
             imageUrl: "https://picsum.photos/id/292/600/400",
           },
