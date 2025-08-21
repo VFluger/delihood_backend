@@ -23,13 +23,13 @@ router.post("/change/:changeParam", changeAcc);
 
 //Order logic
 const {
-  startOrder,
+  updateOrder,
   getPayment,
   newOrder,
 } = require("../controllers/postOrder");
 
 router.post("/new-order", newOrder);
 router.get("/order/payment", getPayment);
-router.get("/start-order", startOrder);
+router.get("/order/update", updateOrder);
 
 module.exports = router;

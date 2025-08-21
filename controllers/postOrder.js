@@ -7,38 +7,34 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const PRICE_OF_DELIVERY = 30; // 30 Kc
 
 // Create new order and send payment gate
-/* Expected JSON:
-    "items": [ {foodId: Int, quantity: Int, note: String} ]
-    deliveryLocation: {
-    "lat": Double
-    "lng": Double
-    }
-    "tip": Int
-*/
 module.exports.newOrder = async (req, res) => {
+  console.log("Ordering...");
   await check("items").isArray({ min: 1 }).run(req);
-  await check("items.*.foodId").isInt().run(req);
+  await check("items.*.food.id").isInt().run(req);
   await check("items.*.quantity").isInt({ min: 1 }).run(req);
   await check("items.*.note").isString().trim().escape().run(req);
-  await check("deliveryLocation.lat").isNumeric().run(req);
-  await check("deliveryLocation.lng").isNumeric().run(req);
+  await check("deliveryLocationLat").isNumeric().run(req);
+  await check("deliveryLocationLng").isNumeric().run(req);
   await check("tip").isInt().run(req);
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log(errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { items, deliveryLocation, tip } = req.body;
+  const { items, deliveryLocationLat, deliveryLocationLng, tip } = req.body;
 
   // Cast into set to remove duplicates
-  const itemIds = [...new Set(items.map((item) => item.foodId))];
+  const itemIds = [...new Set(items.map((item) => item.food.id))];
   // Check if all foods exist
   const resultOfFood = await sql`SELECT *
      FROM foods
       WHERE id = ANY(${itemIds})
-      AND cook_id IN (SELECT id FROM cooks WHERE online = true)`;
+      AND cook_id IN (SELECT id FROM cooks WHERE is_online = true)`;
+  console.log(resultOfFood);
   if (resultOfFood.length !== items.length) {
+    console.log("food doesnt exist");
     return res
       .status(404)
       .send({ error: "Food doesn't exist or cook is offline" });
@@ -46,6 +42,7 @@ module.exports.newOrder = async (req, res) => {
 
   const cookIds = new Set(resultOfFood.map((food) => food.cook_id));
   if (cookIds.size !== 1) {
+    console.log("All food from the same cook");
     return res
       .status(400)
       .send({ error: "All foods must be from the same cook" });
@@ -54,16 +51,17 @@ module.exports.newOrder = async (req, res) => {
   // Check if there is a driver within 25km who is online
   const driverResult = await sql`
     SELECT id FROM drivers
-    WHERE online = true
+    WHERE is_online = true
     AND ST_DWithin(
       location::geography,
-      ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography,
+      ST_SetSRID(ST_MakePoint(${deliveryLocationLng}, ${deliveryLocationLat}), 4326)::geography,
       25000
     )
     LIMIT 1
   `;
 
   if (driverResult.length < 1) {
+    console.log("No drivers");
     return res
       .status(400)
       .send({ error: "No driver available in your location" });
@@ -77,16 +75,18 @@ module.exports.newOrder = async (req, res) => {
 
   const arrOfPrices = [];
   for (const item of items) {
-    const food = foodMap.get(item.foodId);
+    const food = foodMap.get(item.food.id);
     if (!food) {
+      console.log("Food not found");
       return res
         .status(404)
-        .send({ error: `Food with ID ${item.foodId} not found` });
+        .send({ error: `Food with ID ${item.food.id} not found` });
     }
     arrOfPrices.push(food.price * item.quantity);
   }
   // Calculate total
   const totalPrice = arrOfPrices.reduce((a, b) => a + b, 0) + PRICE_OF_DELIVERY;
+  //Create paymentIntent in Stripe
 
   // Push into db with PostGIS geography point for delivery_location
   const resultOfNewOrder = await sql`INSERT INTO orders
@@ -95,36 +95,39 @@ module.exports.newOrder = async (req, res) => {
             delivery_location, 
             user_id)
             VALUES
-            (${totalPrice}, ${tip}, ST_SetSRID(ST_MakePoint(${deliveryLocation.lng}, ${deliveryLocation.lat}), 4326)::geography, ${req.user.id})
+            (${totalPrice}, ${tip}, ST_SetSRID(ST_MakePoint(${deliveryLocationLng}, ${deliveryLocationLat}), 4326)::geography, ${req.user.id})
             RETURNING id`;
 
   const orderId = resultOfNewOrder[0].id;
 
   for (const item of items) {
-    const itemPrice = foodMap.get(item.foodId).price;
+    const itemPrice = foodMap.get(item.food.id).price;
     await sql`
-    INSERT INTO order_items (order_id, foodId, quantity, notes, price_at_order)
-    VALUES (${orderId}, ${item.foodId}, ${item.quantity}, ${item.note}, ${itemPrice})
+    INSERT INTO order_items (order_id, food_id, quantity, notes, price_at_order)
+    VALUES (${orderId}, ${item.food.id}, ${item.quantity}, ${item.note}, ${itemPrice})
   `;
   }
-  // Send payment gate
+  // Send paymentIntent
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalPrice * 100, // Stripe uses minor units
       currency: "czk",
+      payment_method_types: ["card"], // only accept card in this demo
       metadata: {
-        orderId: orderId.toString(),
+        orderId: orderId,
         userId: req.user.id.toString(),
       },
-      description: `Order #${orderId} by User ${req.user.id}`,
+      description: `Order#${orderId} by User ${req.user.id}`,
       receipt_email: req.user.email,
-      //statement_descriptor: `DeliHood Order#${orderId}`,
     });
+
     res.send({
       clientSecret: paymentIntent.client_secret,
+      orderId,
     });
   } catch (err) {
     console.error(err);
+
     res.status(500).send({ error: "Cannot generate payment" });
   }
 };
@@ -151,6 +154,7 @@ module.exports.getPayment = async (req, res) => {
   });
   console.log(existingIntents);
   if (existingIntents.data.length < 1) {
+    console.log("New payment");
     // Generate a new paymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: orderFromDb.price * 100, // Stripe uses minor units
@@ -161,20 +165,22 @@ module.exports.getPayment = async (req, res) => {
       },
       description: `Order #${orderId} by User ${req.user.id}`,
       receipt_email: req.user.email,
-      //statement_descriptor: `DeliHood Order#${orderId}`,
     });
     res.send({
       clientSecret: paymentIntent.client_secret,
+      orderId: orderId,
     });
     return;
   }
   // return the existing paymentIntent
+  console.log(existingIntents.data[0].client_secret);
   res.send({
-    cliendSecret: existingIntents.data[0].client_secret,
+    clientSecret: existingIntents.data[0].client_secret,
+    orderId: result[0].id,
   });
 };
 
-module.exports.startOrder = async (req, res) => {
+module.exports.updateOrder = async (req, res) => {
   await check("id").isInt().trim().run(req);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -187,15 +193,24 @@ module.exports.startOrder = async (req, res) => {
   if (resultOrder.length < 1) {
     return res.status(404).send({ error: "Order not found" });
   }
-  const intent = await stripe.paymentIntents.retrieve(
-    resultOrder[0].payment_intent_id
-  );
+  const intent = await stripe.paymentIntents.search({});
+
   if (intent.status !== "succeeded") {
-    return res
-      .status(400)
-      .send({ error: "Payment not successfull", paymentStatus: intent.status });
+    //not paid
+    return res.send({ status: "pending", paymentStatus: intent.status });
   }
-  // Update in db
-  await sql`UPDATE orders SET status='paid' WHERE id=${orderId}`;
-  // Send info to cook
+  switch (resultOrder[0].status) {
+    case "pending" || "paid":
+      //Order paid but not started
+      // Update in db
+      await sql`UPDATE orders SET status='paid' WHERE id=${orderId}`;
+      //MAIN LOGIC
+      // Send info to cook
+      res.send({ orderId, status: "paid" });
+      break;
+    default:
+      //If anything else, just send the status
+      res.send({ orderId, status: resultOrder[0].status });
+      break;
+  }
 };

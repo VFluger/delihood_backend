@@ -2,6 +2,8 @@ const { check, validationResult } = require("express-validator");
 
 const sql = require("../db");
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
 module.exports.getMe = async (req, res) => {
   try {
     // Reading from variable set by middleware from db
@@ -30,16 +32,16 @@ module.exports.getMyOrders = async (req, res) => {
       if (order.status !== "pending") {
         continue;
       }
-      const intent = await stripe.paymentIntents.retrieve(
-        order.payment_intent_id
-      );
+      const searchReslt = await stripe.paymentIntents.search({
+        query: `metadata['orderId']:'${order.id}'`,
+      });
+      const intent = searchReslt.data[0];
       if (intent.status === "succeeded") {
-        order.status = "accepted";
-        await sql`UPDATE orders SET status="accepted" WHERE id=${order.id}`;
-      } else {
-        order.paymentStatus = intent.status;
+        order.status = "paid";
+        await sql`UPDATE orders SET status='paid' WHERE id=${order.id}`;
       }
     }
+    console.log(result);
     res.send({ success: true, data: result });
   } catch (err) {
     console.error(err);
@@ -71,14 +73,14 @@ module.exports.getOrderDetails = async (req, res) => {
           f.id AS food_id,
           f.name,
           f.description,
-          f.image_url,
+          f.imageurl,
           oi.quantity,
           oi.price_at_order
         FROM order_items oi
         JOIN foods f ON oi.food_id = f.id
         WHERE oi.order_id = ${orderId};`;
 
-    res.send({ success: true, data: resultOrderItems });
+    res.send({ success: true, data: resultOrderItems[0] });
   } catch (err) {
     console.error(err);
     res.status(501).send({ error: "Cannot get your order details" });
