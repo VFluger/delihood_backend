@@ -90,7 +90,7 @@ module.exports.newOrder = async (req, res) => {
 
   // Push into db with PostGIS geography point for delivery_location
   const resultOfNewOrder = await sql`INSERT INTO orders
-            (price, 
+            (total_price, 
             tip, 
             delivery_location, 
             user_id)
@@ -189,11 +189,14 @@ module.exports.updateOrder = async (req, res) => {
 
   const orderId = req.query.id;
   // Check if order payed
-  const resultOrder = await sql`SELECT * FROM orders WHERE id=${orderId}`;
+  const resultOrder =
+    await sql`SELECT * FROM orders WHERE id=${orderId} AND user_id=${req.user.id}`;
   if (resultOrder.length < 1) {
     return res.status(404).send({ error: "Order not found" });
   }
-  const intent = await stripe.paymentIntents.search({});
+  const intent = await stripe.paymentIntents.search({
+    query: `metadata['orderId']:'${orderId}'`,
+  });
 
   if (intent.status !== "succeeded") {
     //not paid
@@ -213,4 +216,44 @@ module.exports.updateOrder = async (req, res) => {
       res.send({ orderId, status: resultOrder[0].status });
       break;
   }
+};
+
+module.exports.cancelOrder = async (req, res) => {
+  //If already paid, cannot cancel in this demo
+  await check("id").isInt().trim().run(req);
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).send({ error: errors.array() });
+  }
+
+  const orderId = req.body.id;
+
+  const result =
+    await sql`SELECT * FROM orders WHERE id=${orderId} AND user_id=${req.user.id}`;
+
+  if (result.length < 1) {
+    return res.status(404).send({ error: "Order not found" });
+  }
+  const order = result[0];
+
+  //If order is paid
+  if (order.status != "pending") {
+    return res.status(400).send({ error: "Order already paid" });
+  }
+
+  const paymentIntent = await stripe.paymentIntents.search({
+    query: `metadata['orderId']:'${orderId}'`,
+  });
+
+  if (paymentIntent.data.length < 1) {
+    return res.status(404).send({ error: "Payment not found" });
+  }
+
+  if (paymentIntent.data[0].status == "succeeded") {
+    return res.status(400).send({ error: "Order already paid" });
+  }
+  //Mark as cancelled
+  await sql`UPDATE orders SET status='cancelled' WHERE id=${orderId}`;
+  res.send({ success: true });
 };

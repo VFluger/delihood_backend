@@ -26,10 +26,12 @@ const {
   updateOrder,
   getPayment,
   newOrder,
+  cancelOrder,
 } = require("../controllers/postOrder");
 
 router.post("/new-order", newOrder);
 router.get("/order/payment", getPayment);
 router.get("/order/update", updateOrder);
+router.post("/order/cancel", cancelOrder);
 
 module.exports = router;

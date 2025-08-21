@@ -60,9 +60,9 @@ module.exports.getOrderDetails = async (req, res) => {
     const userId = req.user.id;
     const orderId = Number(req.query.id);
 
-    // Check if order belongs to user
-    const result =
-      await sql`SELECT id FROM orders WHERE id=${orderId} AND user_id=${userId}`;
+    // select order, has to belong to user
+    let result =
+      await sql`SELECT * FROM orders WHERE id=${orderId} AND user_id=${userId}`;
     if (result.length < 1) {
       return res.status(400).send({ error: "Order not found" });
     }
@@ -80,7 +80,10 @@ module.exports.getOrderDetails = async (req, res) => {
         JOIN foods f ON oi.food_id = f.id
         WHERE oi.order_id = ${orderId};`;
 
-    res.send({ success: true, data: resultOrderItems[0] });
+    //add items to the result obj
+    result[0].items = resultOrderItems;
+    console.log(result[0]);
+    res.send({ success: true, data: result[0] });
   } catch (err) {
     console.error(err);
     res.status(501).send({ error: "Cannot get your order details" });
