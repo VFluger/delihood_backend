@@ -25,7 +25,7 @@ router.get("/cooks", getCooks);
 router.get("/cook/food", getFoodOfCook);
 router.get("/me/orders", getMyOrders);
 router.get("/me/order", getOrderDetails);
-router.get("/main-screen", getMainScreen);
+router.get("/main-data", getMainScreen);
 
 //Account changes
 router.post("/change/:changeParam", changeAcc);
