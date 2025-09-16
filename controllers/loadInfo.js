@@ -73,7 +73,7 @@ module.exports.getOrderDetails = async (req, res) => {
           f.id AS food_id,
           f.name,
           f.description,
-          f.imageurl,
+          f.image_url,
           oi.quantity,
           oi.price_at_order
         FROM order_items oi
