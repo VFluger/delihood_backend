@@ -6,7 +6,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 module.exports.getMe = async (req, res) => {
   try {
-    // Reading from variable set by middleware from db
+    // Reading from variable set by middleware from db (up to date)
     const { name, email, phone, created_at } = req.user;
     res.send({
       success: true,
@@ -82,7 +82,6 @@ module.exports.getOrderDetails = async (req, res) => {
 
     //add items to the result obj
     result[0].items = resultOrderItems;
-    console.log(result[0]);
     res.send({ success: true, data: result[0] });
   } catch (err) {
     console.error(err);
@@ -94,7 +93,7 @@ module.exports.getCooks = async (req, res) => {
   try {
     //Location of user
     await check("lat").isFloat().run(req);
-    await check("lat").isFloat().run(req);
+    await check("lng").isFloat().run(req);
 
     const errors = validationResult(req);
 
@@ -106,22 +105,6 @@ module.exports.getCooks = async (req, res) => {
 
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
-
-    // Check if there is at least one driver online within 25km radius
-    const driverResult = await sql`
-      SELECT id FROM drivers
-      WHERE is_online = TRUE
-        AND ST_DWithin(
-          location,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-          ${radiusMeters}
-        )
-      LIMIT 1;
-    `;
-
-    if (driverResult.length < 1) {
-      return res.status(400).send({ error: "No driver available within 25km" });
-    }
 
     // Get cooks that are online in 25km radius
     // Ordered by distance at least for now
@@ -169,5 +152,77 @@ module.exports.getFoodOfCook = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(501).send({ error: "Cannot get food right now" });
+  }
+};
+
+module.exports.getMainScreen = async (req, res) => {
+  try {
+    //Location of user
+    await check("lat").isFloat().run(req);
+    await check("lng").isFloat().run(req);
+
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      console.log(errors);
+      return res.send({ errors: errors.array() });
+    }
+
+    const radiusMeters = 25000; // 25km
+
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+
+    // Check if there is at least one driver online within 25km radius
+    const driverResult = await sql`
+      SELECT id FROM drivers
+      WHERE is_online = TRUE
+        AND ST_DWithin(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+          ${radiusMeters}
+        )
+      LIMIT 1;
+    `;
+
+    if (driverResult.length < 1) {
+      console.log("no driver");
+      return res.send({
+        error: "No driver available within 25km",
+        isNoDriver: true,
+      });
+    }
+
+    // Get cooks that are online in 25km radius
+    // Ordered by distance
+    const result = await sql`
+      SELECT
+        id,
+        name,
+        description,
+        image_url,
+        ST_Distance(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+        ) AS distance_meters
+      FROM cooks
+      WHERE is_online = TRUE
+        AND ST_DWithin(
+          location,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+          ${radiusMeters}
+        )
+      ORDER BY distance_meters ASC;
+    `;
+
+    // Attach foods for each cook
+    for (const cook of result) {
+      const foods = await sql`SELECT * FROM foods WHERE cook_id=${cook.id}`;
+      cook.foods = foods;
+    }
+    res.send({ success: true, data: result });
+  } catch (err) {
+    console.error(err);
+    res.status(501).send({ error: "Cannot get cooks at the moment" });
   }
 };
