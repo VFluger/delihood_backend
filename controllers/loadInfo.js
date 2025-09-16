@@ -7,13 +7,14 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 module.exports.getMe = async (req, res) => {
   try {
     // Reading from variable set by middleware from db (up to date)
-    const { name, email, phone, created_at } = req.user;
+    const { name, email, phone, created_at, image_url } = req.user;
     res.send({
       success: true,
       data: {
         username: name,
         email,
         phone,
+        image_url,
         created_at,
       },
     });
