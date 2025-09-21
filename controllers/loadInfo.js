@@ -176,16 +176,15 @@ module.exports.getMainScreen = async (req, res) => {
 
     // Check if there is at least one driver online within 25km radius
     const driverResult = await sql`
-      SELECT id FROM drivers
-      WHERE is_online = TRUE
-        AND ST_DWithin(
-          location,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-          ${radiusMeters}
-        )
-      LIMIT 1;
-    `;
-
+  SELECT id FROM drivers
+  WHERE is_online = TRUE
+    AND ST_DWithin(
+      location,
+      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+      ${radiusMeters}
+    )
+  LIMIT 1;
+`;
     if (driverResult.length < 1) {
       console.log("no driver");
       return res.send({

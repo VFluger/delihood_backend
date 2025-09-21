@@ -31,9 +31,7 @@ module.exports.newOrder = async (req, res) => {
      FROM foods
       WHERE id = ANY(${itemIds})
       AND cook_id IN (SELECT id FROM cooks WHERE is_online = true)`;
-  console.log(resultOfFood);
   if (resultOfFood.length !== items.length) {
-    console.log("food doesnt exist");
     return res
       .status(404)
       .send({ error: "Food doesn't exist or cook is offline" });
@@ -75,6 +73,7 @@ module.exports.newOrder = async (req, res) => {
   for (const item of items) {
     const food = foodMap.get(item.food.id);
     if (!food) {
+      //Should not happen
       return res
         .status(404)
         .send({ error: `Food with ID ${item.food.id} not found` });
@@ -207,6 +206,9 @@ module.exports.updateOrder = async (req, res) => {
   if (resultOrder[0].user_id !== req.user.id) {
     return res.status(403).send({ error: "Not your order" });
   }
+  const cookResult =
+    await sql`SELECT location FROM cooks WHERE id=(SELECT cook_id FROM foods WHERE id=(SELECT food_id FROM order_items WHERE order_id=${orderId} LIMIT 1))`;
+
   switch (resultOrder[0].status) {
     case "pending":
       //Order paid but not started
@@ -217,28 +219,52 @@ module.exports.updateOrder = async (req, res) => {
       res.send({ orderId, status: "paid" });
       break;
     case "waiting for pickup":
+      const alrHasDrivrResult =
+        await sql`SELECT id FROM drivers WHERE current_order_id=${orderId}`;
+      if (alrHasDrivrResult.length > 0) {
+        //Already has a driver assigned
+        return res.send({ orderId, status: resultOrder[0].status });
+      }
+
       //Pick driver
-      const driverResult = await sql`SELECT d.*,
-       ST_Distance(d.location, dl.delivery_location) AS distance,
-       EXTRACT(EPOCH FROM (NOW() - d.last_order_time)) AS wait_seconds,
-       ST_Distance(d.location, dl.delivery_location) / 1000 
-         - EXTRACT(EPOCH FROM (NOW() - d.last_order_time)) / 60 AS score
-        FROM drivers d
-        CROSS JOIN (SELECT delivery_location FROM orders WHERE id = ${orderId}) dl
-        WHERE d.is_online = true AND d.current_order_id IS NULL
+      const driverResult = await sql`SELECT *,
+       ST_Distance(location, ${cookResult.location}) AS distance,
+       EXTRACT(EPOCH FROM (NOW() - last_order_time)) AS wait_seconds,
+       ST_Distance(location, ${cookResult.location}) / 1000 
+         - EXTRACT(EPOCH FROM (NOW() - last_order_time)) / 60 AS score
+        FROM drivers
+        WHERE is_online = true AND current_order_id IS NULL
         ORDER BY score ASC
         LIMIT 1;`;
       if (driverResult.length < 1) {
-        //PROBLEM, no driver online
+        //PROBLEM, no driver available
         return res
           .status(503) //service unavailable
           .send({ error: "No driver available in your location" });
       }
-      console.log(driverResult[0]);
+      const driver = driverResult[0];
+      await sql`UPDATE drivers SET current_order_id=${orderId}, last_order_time=NOW() WHERE id=${driver.id}`;
 
       // Ping driver app
       // APN
       res.send({ orderId, status: resultOrder[0].status });
+    case "delivering":
+      //Send driver location
+      const driverLocResult = sql`
+      SELECT 
+        ST_X(location::geometry) AS lng, 
+        ST_Y(location::geometry) AS lat 
+      FROM drivers 
+      WHERE current_order_id=${orderId}`;
+
+      if (driverLocResult.length < 1) {
+        return res.status(404).send({ error: "Driver not found" });
+      }
+      const driverLoc = driverLocResult[0];
+      const lng = driverLoc.lng;
+      const lat = driverLoc.lat;
+      res.send({ orderId, status: resultOrder[0].status, lng, lat });
+      break;
     default:
       //just send the status
       res.send({ orderId, status: resultOrder[0].status });
