@@ -40,7 +40,7 @@ exports.loginAuthWithoutEmailVer = async (req, res, next) => {
     req.user = result[0];
     next();
   } catch (err) {
-    console.log(err);
+    console.log("Invalid or expired token");
     return res.status(401).send({ error: "Invalid or expired token" });
   }
 };

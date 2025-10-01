@@ -74,9 +74,7 @@ exports.newTokens = async (req, res) => {
   }
   // REFRESH TOKEN VALID
   // Delete old refresh token from DB
-  console.log("USER ID", decoded.userId);
   await sql`DELETE FROM refresh_tokens WHERE user_id=${decoded.userId}`;
-  console.log("creating new short-lived jwt");
   // Create new short-lived JWT
   const jwtForUser = jwt.sign(
     {
@@ -96,7 +94,6 @@ exports.newTokens = async (req, res) => {
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: "30d" }
   );
-  console.log("saving new token");
   // Save new refresh token
   await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${newRefreshToken}, ${newRefreshExpiresAt}, ${decoded.userId})`;
 
@@ -110,7 +107,6 @@ exports.register = async (req, res) => {
     await check("phone").isMobilePhone().run(req);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log(errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 

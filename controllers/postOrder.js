@@ -18,7 +18,6 @@ module.exports.newOrder = async (req, res) => {
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log(errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
@@ -57,6 +56,7 @@ module.exports.newOrder = async (req, res) => {
   `;
 
   if (driverResult.length < 1) {
+    console.log("No drivers available in location");
     return res
       .status(400)
       .send({ error: "No driver available in your location" });

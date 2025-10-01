@@ -42,7 +42,6 @@ module.exports.getMyOrders = async (req, res) => {
         await sql`UPDATE orders SET status='paid' WHERE id=${order.id}`;
       }
     }
-    console.log(result);
     res.send({ success: true, data: result });
   } catch (err) {
     console.error(err);
@@ -165,7 +164,6 @@ module.exports.getMainScreen = async (req, res) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      console.log(errors);
       return res.send({ errors: errors.array() });
     }
 

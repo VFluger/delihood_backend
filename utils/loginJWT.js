@@ -25,7 +25,6 @@ module.exports.loginJWT = async (res, userId) => {
   await sql`DELETE FROM refresh_tokens WHERE user_id=${userId}`;
   // Push to db
   await sql`INSERT INTO refresh_tokens(token, expires_at, user_id) VALUES(${refreshToken}, ${refreshExpiresAt}, ${userId})`;
-  console.log("sending to user");
-  console.log(jwtForUser);
+  console.log("sending token to user");
   res.send({ success: true, accessToken: jwtForUser, refreshToken });
 };

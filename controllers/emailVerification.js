@@ -21,7 +21,6 @@ exports.generateConfirm = async (req, res) => {
     sendConfirmationEmail(userEmail, token, 1);
     res.send({ success: true });
   } catch (error) {
-    console.log(error);
     res
       .status(501)
       .send({ error: "Cannot generate confirm right now, try later" });
